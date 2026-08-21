@@ -1,0 +1,30 @@
+# OS files
+.DS_Store
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Secrets — never commit live tokens/credentials
+.env
+.uipath/.auth.json
+
+# UiPath build/runtime artifacts
+.uipath/*.nupkg
+.uipath/.telemetry.json
+.uipath/.error_log
+.uipath/studio_metadata.json
+__uipath/
+
+# Local run outputs
+last_output*.json
+last_output*.html
+test_*.json
+test_*.html

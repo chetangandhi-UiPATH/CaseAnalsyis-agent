@@ -1,0 +1,6 @@
+{
+  "ProjectType": "Agent",
+  "Name": "case-analysis",
+  "Description": "CIP Case Analysis \u2014 Salesforce support case analyser deployed as a UiPath Coded Agent",
+  "MainFile": null
+}

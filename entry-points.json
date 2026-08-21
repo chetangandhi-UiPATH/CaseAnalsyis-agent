@@ -1,0 +1,184 @@
+{
+    "$schema": "https://cloud.uipath.com/draft/2024-12/entry-point",
+    "$id": "entry-points.json",
+    "entryPoints": [
+        {
+            "filePath": "agent",
+            "uniqueId": "27edb9fd-0b20-40e4-a59d-169ac6145d5d",
+            "type": "agent",
+            "input": {
+                "type": "object",
+                "properties": {
+                    "case_number": {
+                        "title": "Case Number",
+                        "type": "string"
+                    },
+                    "sf_instance_url": {
+                        "title": "Sf Instance Url",
+                        "type": "string"
+                    },
+                    "sfdc_access_token": {
+                        "title": "Sfdc Access Token",
+                        "type": "string"
+                    },
+                    "raw_case_data": {
+                        "type": "string"
+                    },
+                    "issue_result": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "support_result": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "sentiment_result": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "context_result": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "analysis": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "case_number",
+                    "sf_instance_url",
+                    "sfdc_access_token"
+                ]
+            },
+            "output": {
+                "type": "object",
+                "properties": {
+                    "analysis": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                },
+                "required": []
+            },
+            "graph": {
+                "nodes": [
+                    {
+                        "id": "__start__",
+                        "name": "__start__",
+                        "type": "__start__",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "fetch_case_data",
+                        "name": "fetch_case_data",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "issue_classifier",
+                        "name": "issue_classifier",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "support_action_log",
+                        "name": "support_action_log",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "sentiment_analyzer",
+                        "name": "sentiment_analyzer",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "context_tagger",
+                        "name": "context_tagger",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "synthesizer",
+                        "name": "synthesizer",
+                        "type": "node",
+                        "subgraph": null,
+                        "metadata": {}
+                    },
+                    {
+                        "id": "__end__",
+                        "name": "__end__",
+                        "type": "__end__",
+                        "subgraph": null,
+                        "metadata": {}
+                    }
+                ],
+                "edges": [
+                    {
+                        "source": "__start__",
+                        "target": "fetch_case_data",
+                        "label": null
+                    },
+                    {
+                        "source": "context_tagger",
+                        "target": "synthesizer",
+                        "label": null
+                    },
+                    {
+                        "source": "fetch_case_data",
+                        "target": "context_tagger",
+                        "label": null
+                    },
+                    {
+                        "source": "fetch_case_data",
+                        "target": "issue_classifier",
+                        "label": null
+                    },
+                    {
+                        "source": "fetch_case_data",
+                        "target": "sentiment_analyzer",
+                        "label": null
+                    },
+                    {
+                        "source": "fetch_case_data",
+                        "target": "support_action_log",
+                        "label": null
+                    },
+                    {
+                        "source": "issue_classifier",
+                        "target": "synthesizer",
+                        "label": null
+                    },
+                    {
+                        "source": "sentiment_analyzer",
+                        "target": "synthesizer",
+                        "label": null
+                    },
+                    {
+                        "source": "support_action_log",
+                        "target": "synthesizer",
+                        "label": null
+                    },
+                    {
+                        "source": "synthesizer",
+                        "target": "__end__",
+                        "label": null
+                    }
+                ]
+            }
+        }
+    ]
+}
