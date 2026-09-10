@@ -51,28 +51,40 @@ the best fit even when signals are limited.
 
 Use the exact product name from this list. A case may involve more than one product — include all affected.
 
-- Integration Service
-- Orchestrator
-- Studio
-- Activities
-- Robot
-- Automation Suite *(as a product bundle — distinct from the Kubernetes deployment type)*
-- Solution Management
-- IXP Unstructured Docs
-- Agent Builder
-- AI Fabric
-- Agent Desktop
-- Autopilot
-- Maestro
-- UiPath Insights
-- Document Understanding
+**Act-1 (classic RPA platform):** Studio, StudioX, Studio Web, Robot, Activities, Assistant,
+Document Understanding, Apps, AI Center, Process Mining, Task Mining, ACR
+
+**Act-2 (agentic / AI platform):** Agents, Maestro, Autopilot, IXP Unstructured Docs,
+AI Trust Layer, UiPath CLI, Test Cloud, Test Manager
+
+**Platform / infrastructure (neither generation):** Integration Service, Orchestrator,
+Automation Suite *(as a product bundle — distinct from the Kubernetes deployment type)*,
+Solution Management, Agent Builder, AI Fabric, Agent Desktop, UiPath Insights
 
 If the affected product is not in this list, use the closest match or the exact name from the case.
+The Act-1/Act-2 split above is informational for you, the classifier — the agent computes the
+`productGeneration` output field itself from whatever you put in `product`, so use the exact names
+above rather than a paraphrase (e.g. "Studio Web", not "the web version of Studio").
 
-### issueOrigin determination
-- Standalone → "customer specific environment" unless a product defect is explicitly confirmed.
-- Automation Suite (infra) → verify whether the Helm/Kubernetes layer is customer-managed before attributing to product.
-- Automation Cloud → UiPath degradation → "product bug"; firewall/proxy → "customer specific environment".
+### issueOrigin Determination
+
+Work top-down; use the first category the confirmed evidence supports — never guess or default silently:
+
+| Category | issueOrigin | Confirm before assigning |
+|----------|-------------|---------------------------|
+| Third-party / non-UiPath system at fault | "third party" | A partner connector, the customer's ERP/ITSM, a vendor library, or an external service the customer integrated is the root cause. |
+| Infrastructure the customer manages | "infrastructure" | Network, SQL Server, Kubernetes cluster, storage, certificates, DNS, or firewall health — the product behaves correctly, the surrounding infrastructure does not. |
+| Customer configuration / environment | "customer specific environment" | Non-standard config, custom workflow logic, permissions, or an environment quirk specific to this customer — not third-party, not infrastructure, not a confirmed defect. |
+| Confirmed product defect | "product bug" | Only once the Product Bug Evidence Confirmation Gate below is fully satisfied. |
+| Capability gap under evaluation | "product enhancement" | Requires a TIF. |
+| By-design / documented behavior | "NA" | Never "customer specific environment" or "product bug" — see the classification rules below. |
+| Nothing confirmed yet | "NA" | Default when no category above is evidenced. |
+
+**Per-deployment starting hypothesis** — a hint to investigate, not a default to leave unexamined; always override with confirmed evidence:
+- Standalone → "customer specific environment" (customer owns the full stack: IIS, SQL Server, OS).
+- Automation Suite → "infrastructure" if the customer-managed Kubernetes/Helm layer is unhealthy; "customer specific environment" if it's a configuration choice.
+- Automation Cloud → "product bug" only for confirmed UiPath-side degradation; "customer specific environment" for firewall/proxy/network; "third party" for an integrated external system.
+- Desktop → "customer specific environment" for local machine config, permissions, or conflicting software; "third party" if a non-UiPath application or driver on the desktop is the root cause.
 
 Always use the exact deployment label from the table above in all text fields (deployment_context_note, nextAction, technicalGuidance).
 

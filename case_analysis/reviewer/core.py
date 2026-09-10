@@ -79,6 +79,12 @@ Each field has a single purpose. Flag if:
 - Flag if classification = "cloud_outage" AND (sre_dependency is null AND no "SRE" entry exists in linked_tickets) — cloud_outage requires an attached SRE ticket, same gate as the cloud_outage context tag.
 - Flag if classification = "infra_issue" AND issueOrigin is not "infrastructure" (the two fields must agree).
 
+### G12 — Sentiment Trajectory Consistency
+- Flag if sentimentTrend.final does not equal customerMood — the two must always agree.
+- Flag if sentimentTrend.trajectory = "stable" AND sentimentTrend.initial != sentimentTrend.final (a real mood change was labeled "stable", hiding it).
+- Flag if sentimentTrend.trajectory != "stable" AND sentimentTrend.initial = sentimentTrend.final (no actual change occurred, but a trajectory was claimed).
+- Flag if sentimentTrend.reason is "NA" but the raw data contains more than one customer email (a trajectory reason is expected whenever there's more than one data point to compare).
+
 ---
 
 ## Output Format

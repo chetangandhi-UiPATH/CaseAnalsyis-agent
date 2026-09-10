@@ -1,6 +1,6 @@
-"""to_card_json — transforms flat analysis JSON into a card-aligned JSON where
-every key maps 1:1 to a component in the HTML card. template.render_card() is
-a pure template over this structure; all display logic lives here instead.
+"""to_card_json — transforms the flat agent-output JSON into a card-aligned
+JSON: display values (badges, labels, computed sub-text) are pre-computed
+here so downstream consumers only ever read plain fields, never re-derive them.
 """
 from .helpers import (
     action_owner_badge,
@@ -119,6 +119,7 @@ def to_card_json(a: dict) -> dict:
         "deploymentType": dep_type or "Unknown",
         "deploymentContext": dep_raw,
         "versionRisk": "Yes" if a.get("version_risk") else "No",
+        "productGeneration": a.get("productGeneration") or "N/A",
         "tags": tags
     }
 
@@ -173,12 +174,29 @@ def to_card_json(a: dict) -> dict:
     }
 
     # ── customer signals ──────────────────────────────────────────────────────
+    # Derive the display from initial vs final directly rather than trusting
+    # the model's `trajectory` label on its own — if the two ever disagree
+    # (e.g. trajectory="stable" but initial != final), showing "stable" would
+    # bury a real mood change instead of surfacing it precisely.
+    trend = a.get("sentimentTrend") or {}
+    initial_mood = trend.get("initial")
+    final_mood = trend.get("final") or a.get("customerMood")
+    trend_display = None
+    if initial_mood and final_mood:
+        if initial_mood == final_mood:
+            trend_display = f"Stable — {initial_mood} throughout"
+        else:
+            arrow = "↑" if trend.get("trajectory") == "improved" else "↓" if trend.get("trajectory") == "declined" else "→"
+            trend_display = f"{initial_mood} {arrow} {final_mood}"
+
     customer_signals = {
         "moodBadge": {
             "label": a.get("customerMood", "Neutral"),
             "color": mood_color(a.get("customerMood", ""))
         },
         "reason": a.get("customerMoodReason", ""),
+        "trend": trend_display,
+        "trendReason": trend.get("reason") if trend.get("reason") and trend["reason"] != "NA" else None,
         "escalationRisk": "Present" if is_escalated else "None",
         "businessImpact": a.get("businessImpact", "None stated"),
         "evidence": (a.get("sentiment_evidence") or [])[:3]

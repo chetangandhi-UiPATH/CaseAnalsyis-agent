@@ -1,13 +1,18 @@
 import json
 from typing import Optional
 
-from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel
 
-from .deterministic import build_linked_tickets, compute_case_age, compute_communication_metrics
-from .llm_utils import llm, make_analysis_node
-from .prompts import CASE_CLASSIFICATION_PROMPT, CASE_SUMMARY_PROMPT, COMMUNICATION_SENTIMENT_PROMPT
+from .deterministic import (
+    build_linked_tickets,
+    compute_case_age,
+    compute_communication_metrics,
+    compose_case_summary,
+    product_generation,
+)
+from .llm_utils import make_analysis_node
+from .prompts import CASE_CLASSIFICATION_PROMPT, COMMUNICATION_SENTIMENT_PROMPT
 from .salesforce import fetch_case
 
 
@@ -35,11 +40,11 @@ async def fetch_case_data(state: GraphState) -> dict:
         return {"error": str(exc)}
 
 
-# Two calls instead of the previous five: each of these used to be its own LLM
-# call re-sending the full case payload independently. Merging same-shaped work
-# (structured classification vs. narrative/communication analysis) into one call
-# per group cuts redundant payload transmission without combining calls that
-# don't belong together.
+# Two calls total: each of these used to be its own LLM call re-sending the
+# full case payload independently (5 calls originally). A third call used to
+# generate caseSummary from the merged result — replaced below with a
+# deterministic composition of fields these two calls already produce, since
+# it was mostly re-deriving the same content in different words.
 case_classifier = make_analysis_node(
     CASE_CLASSIFICATION_PROMPT,
     "Classify this case, tag it with context indicators, and extract its resolution timeline. "
@@ -54,22 +59,7 @@ communication_analyzer = make_analysis_node(
 )
 
 
-async def _generate_case_summary(merged: dict) -> str:
-    try:
-        response = await llm.ainvoke([
-            SystemMessage(CASE_SUMMARY_PROMPT),
-            HumanMessage(
-                "Write the caseSummary for this case.\n\n"
-                f"Merged analysis:\n{json.dumps(merged, indent=2)}\n\n"
-                "Return ONLY the caseSummary as a plain string. No JSON, no markdown."
-            ),
-        ])
-        return response.content.strip()
-    except Exception:
-        return "NA"
-
-
-async def synthesizer(state: GraphState) -> dict:
+def synthesizer(state: GraphState) -> dict:
     if state.error:
         return {}
 
@@ -100,12 +90,13 @@ async def synthesizer(state: GraphState) -> dict:
         merged["caseAge"] = computed_age
 
     merged.update(compute_communication_metrics(raw))
+    merged["productGeneration"] = product_generation(merged.get("product"))
 
     tickets = build_linked_tickets(raw)
     if tickets:
         merged["linked_tickets"] = tickets
 
-    merged["caseSummary"] = await _generate_case_summary(merged)
+    merged["caseSummary"] = compose_case_summary(merged)
 
     # Job tracking fields — populated by Orchestrator at runtime
     merged.update({

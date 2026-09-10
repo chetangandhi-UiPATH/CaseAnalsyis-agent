@@ -54,8 +54,8 @@ UIPATH_ACCESS_TOKEN="$TOKEN" uipath run agent "$FULL_INPUT" --output-file "$OUTP
 echo ""
 echo "Output saved to: $OUTPUT_FILE"
 
-# Always render HTML insight card + clean card JSON
-echo "Rendering insight card..."
+# Always build the insight-card JSON
+echo "Building insight card JSON..."
 uv run python render.py "$OUTPUT_FILE"
 
 if [[ "$RUN_REVIEW" == true ]]; then

@@ -1,11 +1,6 @@
-"""Small formatting/lookup helpers shared by transform.py and template.py."""
-import html as _html
+"""Small formatting/lookup helpers used by transform.py."""
 import re
 from datetime import datetime
-
-
-def e(v):
-    return _html.escape(str(v)) if v is not None else ""
 
 
 def fmt_date(s):
@@ -56,26 +51,67 @@ def tag_in(tags, *keywords):
     return False
 
 
+# Exact classification values the prompt is instructed to emit.
+_CLASSIFICATION_DISPLAY = {
+    "product_bug": ("Product bug", "b-red"),
+    "engineering_assisted_resolution": ("Engineering assisted resolution", "b-amber"),
+    "cloud_outage": ("Cloud outage", "b-red"),
+    "cloud_performance_issue": ("Cloud performance issue", "b-amber"),
+    "infra_issue": ("Infra issue", "b-amber"),
+    "product_performance": ("Product performance", "b-amber"),
+    "performance": ("Performance", "b-amber"),  # legacy value — kept for older saved outputs
+    "config_issue": ("Config issue", "b-blue"),
+    "connectivity": ("Connectivity", "b-blue"),
+    "upgrade_failure": ("Upgrade failure", "b-red"),
+    "migration_issue": ("Migration issue", "b-amber"),
+    "integration_connector": ("Integration / connector", "b-purple"),
+    "extension_issue": ("Extension issue", "b-purple"),
+    "license": ("License", "b-purple"),
+    "security_assessment": ("Security assessment", "b-purple"),
+    "feature_request": ("Feature request", "b-purple"),
+    "by_design": ("By design", "b-gray"),
+}
+
+# If a classification value shows up that isn't an exact match above (a typo,
+# a legacy run, a value the prompt hasn't been told about yet), infer the
+# closest real category from keywords in the value itself rather than
+# collapsing everything unmatched into one meaningless "Other" bucket.
+_KEYWORD_FALLBACKS = [
+    (("bug", "defect"), ("Product bug", "b-red")),
+    (("assisted_resolution", "assisted resolution", "engineering_assist"), ("Engineering assisted resolution", "b-amber")),
+    (("cloud_outage", "cloud outage"), ("Cloud outage", "b-red")),
+    (("cloud_perf", "cloud performance"), ("Cloud performance issue", "b-amber")),
+    (("infra",), ("Infra issue", "b-amber")),
+    (("performance", "perf", "slow"), ("Product performance", "b-amber")),
+    (("config",), ("Config issue", "b-blue")),
+    (("connect",), ("Connectivity", "b-blue")),
+    (("upgrade",), ("Upgrade failure", "b-red")),
+    (("migrat",), ("Migration issue", "b-amber")),
+    (("integration", "connector"), ("Integration / connector", "b-purple")),
+    (("extension", "plugin"), ("Extension issue", "b-purple")),
+    (("licens",), ("License", "b-purple")),
+    (("security",), ("Security assessment", "b-purple")),
+    (("feature", "enhancement"), ("Feature request", "b-purple")),
+    (("design", "expected", "documented"), ("By design", "b-gray")),
+]
+
+
 def classification_display(key):
-    return {
-        "product_bug": ("Product bug", "b-red"),
-        "engineering_assisted_resolution": ("Engineering assisted resolution", "b-amber"),
-        "cloud_outage": ("Cloud outage", "b-red"),
-        "cloud_performance_issue": ("Cloud performance issue", "b-amber"),
-        "infra_issue": ("Infra issue", "b-amber"),
-        "product_performance": ("Product performance", "b-amber"),
-        "performance": ("Performance", "b-amber"),  # legacy value — kept for older saved outputs
-        "config_issue": ("Config issue", "b-blue"),
-        "connectivity": ("Connectivity", "b-blue"),
-        "upgrade_failure": ("Upgrade failure", "b-red"),
-        "migration_issue": ("Migration issue", "b-amber"),
-        "integration_connector": ("Integration / connector", "b-purple"),
-        "extension_issue": ("Extension issue", "b-purple"),
-        "license": ("License", "b-purple"),
-        "security_assessment": ("Security assessment", "b-purple"),
-        "feature_request": ("Feature request", "b-purple"),
-        "other": ("Other", "b-gray"),
-    }.get(key or "other", (key or "other", "b-gray"))
+    if not key:
+        return ("Uncategorized", "b-gray")
+
+    exact = _CLASSIFICATION_DISPLAY.get(key)
+    if exact:
+        return exact
+
+    lowered = key.lower()
+    for keywords, display in _KEYWORD_FALLBACKS:
+        if any(kw in lowered for kw in keywords):
+            return display
+
+    # No known keyword matched either — show the model's own value, cleaned
+    # up for display, rather than a generic label that hides what it actually said.
+    return (key.replace("_", " ").replace("-", " ").strip().capitalize(), "b-gray")
 
 
 def status_color(status):

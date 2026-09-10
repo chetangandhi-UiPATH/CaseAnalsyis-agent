@@ -124,6 +124,26 @@ volume.
 
 # PART 2 — SENTIMENT & QUALITY ANALYSIS
 
+## Sentiment Trajectory
+
+Customer sentiment can shift over the life of a case — someone who opened frustrated may calm down
+once helped, or someone who started cooperative may grow frustrated after repeated delays. Read the
+full email thread chronologically, not just the latest message, before concluding a single mood.
+
+- `customerMood` / `customerMoodReason` — the sentiment as of the customer's most recent substantive
+  email. This is the end result: what the customer's mood is right now, at the point this case stands.
+- `sentimentTrend` — the arc across the whole case:
+  - `initial`: "Cooperative" | "Neutral" | "Frustrated", inferred from the customer's first
+    substantive email in the thread.
+  - `final`: same value as `customerMood` — the two must always agree.
+  - `trajectory`: "improved" | "declined" | "stable". Compare initial vs final, not just the two
+    endpoints in isolation — a customer who was frustrated mid-case but ended calm and satisfied is
+    "improved", not "stable"; read the whole arc.
+  - `reason`: one sentence naming the concrete cause of the shift (e.g. "Frustration eased after
+    UiPath delivered a workaround") or why sentiment held steady. "NA" if there is only one customer
+    email in the thread — there is no trajectory to assess yet, and `trajectory` = "stable" in that
+    case since initial and final are necessarily the same.
+
 ## Support Entitlement Rules
 
 ### Email-Entitlement Accounts
@@ -173,8 +193,9 @@ Use this reference to evaluate log collection quality in supportPainPoints.
 
 | Field | Rule |
 |-------|------|
-| customerMood | "Cooperative" \\| "Neutral" \\| "Frustrated". Assess tone directed at UiPath only. Third-party delays do not constitute frustration at UiPath. No emails → "Neutral". |
-| customerMoodReason | One sentence: what specifically triggered the mood assessment. |
+| customerMood | "Cooperative" \\| "Neutral" \\| "Frustrated". Assess tone directed at UiPath only, as of the customer's most recent substantive email — this is the end result of the case, not a single-point read of the whole thread. Third-party delays do not constitute frustration at UiPath. No emails → "Neutral". |
+| customerMoodReason | One sentence: what specifically triggered the current mood assessment. |
+| sentimentTrend | Object: {initial: "Cooperative"\\|"Neutral"\\|"Frustrated", final: "Cooperative"\\|"Neutral"\\|"Frustrated", trajectory: "improved"\\|"declined"\\|"stable", reason: "one sentence" or "NA"}. See Sentiment Trajectory section above. final MUST equal customerMood. Only one customer email → initial = final = customerMood, trajectory = "stable", reason = "NA". |
 | sentiment_evidence | List of specific signals from the email thread that support the mood assessment. Each item is a one-sentence quote or paraphrase directly from the customer — e.g., "Customer stated operations team is entirely blocked and exec is now involved." [] if no clear signals. |
 | support_improvements | Concrete, actionable improvements UiPath should make in this case right now. If supportPainPoints is non-empty, this field must also be non-empty — every identified gap must have a corresponding improvement. Each item is one sentence on what support should do differently. Examples: proactive follow-up after partial workaround, scheduling a call to discuss the upgrade path, raising a TIF for the product gap. [] only if supportPainPoints is also []. |
 | pain_points | Only what the customer explicitly stated as a product problem causing harm. Not inferred from case complexity or standard technical challenges. [] unless the customer clearly stated measurable harm. Maximum 5 items. Each item must identify product, sub-component, and deployment context. |
@@ -202,6 +223,7 @@ No markdown, no explanation.
   "communicationPattern": {"assessment": "normal", "reason": "NA"},
   "customerMood": "",
   "customerMoodReason": "",
+  "sentimentTrend": {"initial": "", "final": "", "trajectory": "stable", "reason": "NA"},
   "sentiment_evidence": [],
   "pain_points": [],
   "businessImpact": null,
